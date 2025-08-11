@@ -2,7 +2,7 @@
   "name": "hono-next",
   "version": "0.1.0",
   "bin": {
-    "hono-next": "./dist/bin/hono-next.js"
+    "hono-next": "dist/bin/hono-next.js"
   },
   "scripts": {
     "build": "tsc"
