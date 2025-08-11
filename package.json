@@ -1,0 +1,19 @@
+{
+  "name": "hono-next",
+  "version": "0.1.0",
+  "bin": {
+    "hono-next": "./dist/bin/hono-next.js"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "wrangler": "^4.28.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  },
+  "peerDependencies": {
+    "next": "^14 || ^15"
+  }
+}
