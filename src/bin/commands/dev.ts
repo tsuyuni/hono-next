@@ -1,23 +1,42 @@
 #!/usr/bin/env node
-import { serve } from "@hono/node-server";
 import { spawn } from "child_process";
-import path from "path";
 import http from "http";
 
 const runDevCommand = () => {
-  const app = require(path.resolve("./src/api/index.ts")).default;
-
-  const honoServer = serve({
-    fetch: app.fetch,
-    port: 8787,
-  });
-
   const nextProcess = spawn("next", ["dev", "-p", "3000"], {
-    stdio: ["inherit", "pipe", "inherit"],
+    stdio: ["inherit", "pipe", "pipe"],
     env: {
       ...process.env,
       NODE_ENV: "development",
     },
+  });
+
+  nextProcess.stdout?.on("data", (data) => {
+    console.log(`[▲ Next.js] ${data.toString().trim()}`);
+  });
+
+  nextProcess.stderr?.on("data", (data) => {
+    console.error(`[▲ Next.js] ${data.toString().trim()}`);
+  });
+
+  nextProcess.on("error", (error) => {
+    console.error(`[▲ Next.js] ${error.message}`);
+  });
+
+  const honoProcess = spawn("wrangler", ["dev", "--port", "8787"], {
+    stdio: ["inherit", "pipe", "pipe"],
+  });
+
+  honoProcess.stdout?.on("data", (data) => {
+    console.log(`[☁️ Wrangler] ${data.toString().trim()}`);
+  });
+
+  honoProcess.stderr?.on("data", (data) => {
+    console.error(`[☁️ Wrangler] ${data.toString().trim()}`);
+  });
+
+  honoProcess.on("error", (error) => {
+    console.error(`[☁️ Wrangler] ${error.message}`);
   });
 
   const proxyRequest = (
@@ -57,7 +76,9 @@ const runDevCommand = () => {
   });
 
   server.listen(9876, () => {
-    console.log("🔥 Development server listening on http://localhost:9876");
+    console.log(
+      "[💫Hono-Next] Development server listening on http://localhost:9876"
+    );
   });
 
   process.on("SIGINT", () => {
@@ -66,7 +87,7 @@ const runDevCommand = () => {
       console.log("Proxy server stopped");
     });
     nextProcess.kill("SIGINT");
-    honoServer.close();
+    honoProcess.kill("SIGINT");
     process.exit(0);
   });
 
@@ -76,7 +97,7 @@ const runDevCommand = () => {
       console.log("Proxy server stopped");
     });
     nextProcess.kill("SIGTERM");
-    honoServer.close();
+    honoProcess.kill("SIGTERM");
     process.exit(0);
   });
 };

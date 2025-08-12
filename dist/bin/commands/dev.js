@@ -4,22 +4,36 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-const node_server_1 = require("@hono/node-server");
 const child_process_1 = require("child_process");
-const path_1 = __importDefault(require("path"));
 const http_1 = __importDefault(require("http"));
 const runDevCommand = () => {
-    const app = require(path_1.default.resolve("./src/api/index.ts")).default;
-    const honoServer = (0, node_server_1.serve)({
-        fetch: app.fetch,
-        port: 8787,
-    });
     const nextProcess = (0, child_process_1.spawn)("next", ["dev", "-p", "3000"], {
-        stdio: ["inherit", "pipe", "inherit"],
+        stdio: ["inherit", "pipe", "pipe"],
         env: {
             ...process.env,
             NODE_ENV: "development",
         },
+    });
+    nextProcess.stdout?.on("data", (data) => {
+        console.log(`[▲ Next.js] ${data.toString().trim()}`);
+    });
+    nextProcess.stderr?.on("data", (data) => {
+        console.error(`[▲ Next.js] ${data.toString().trim()}`);
+    });
+    nextProcess.on("error", (error) => {
+        console.error(`[▲ Next.js] ${error.message}`);
+    });
+    const honoProcess = (0, child_process_1.spawn)("wrangler", ["dev", "--port", "8787"], {
+        stdio: ["inherit", "pipe", "pipe"],
+    });
+    honoProcess.stdout?.on("data", (data) => {
+        console.log(`[☁️ Wrangler] ${data.toString().trim()}`);
+    });
+    honoProcess.stderr?.on("data", (data) => {
+        console.error(`[☁️ Wrangler] ${data.toString().trim()}`);
+    });
+    honoProcess.on("error", (error) => {
+        console.error(`[☁️ Wrangler] ${error.message}`);
     });
     const proxyRequest = (req, res, port) => {
         const proxyReq = http_1.default.request({
@@ -48,7 +62,7 @@ const runDevCommand = () => {
         }
     });
     server.listen(9876, () => {
-        console.log("🔥 Development server listening on http://localhost:9876");
+        console.log("[💫Hono-Next] Development server listening on http://localhost:9876");
     });
     process.on("SIGINT", () => {
         console.log("\nShutting down servers...");
@@ -56,7 +70,7 @@ const runDevCommand = () => {
             console.log("Proxy server stopped");
         });
         nextProcess.kill("SIGINT");
-        honoServer.close();
+        honoProcess.kill("SIGINT");
         process.exit(0);
     });
     process.on("SIGTERM", () => {
@@ -65,7 +79,7 @@ const runDevCommand = () => {
             console.log("Proxy server stopped");
         });
         nextProcess.kill("SIGTERM");
-        honoServer.close();
+        honoProcess.kill("SIGTERM");
         process.exit(0);
     });
 };

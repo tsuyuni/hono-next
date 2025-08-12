@@ -1,10 +1,14 @@
+<p align="center">
+  <img src="docs/public/logo.png" width="300" />
+</p>
+
 # Overview
 
 Hono-Next provides a seamless full-stack application development experience. It combines Next.js for the frontend and Hono for the backend, delivering an integrated development experience with one-command deployment to Cloudflare Workers.
 
 # Getting Started
 
-1. Installation
+## 1. Installation
 
 ```bash
 # Create Next.js app
@@ -17,7 +21,7 @@ npm i -D hono-next
 npm i hono
 ```
 
-2. Configuration
+## 2. Configuration
 
 Configure `next.config.ts` with static export output:
 
@@ -44,7 +48,7 @@ Create `wrangler.json`.
 }
 ```
 
-3. Update `package.json`
+## 3. Update `package.json`
 
 ```json
 {
@@ -55,7 +59,7 @@ Create `wrangler.json`.
 }
 ```
 
-4. Create API Routes
+## 4. Create API Routes
 
 ```ts
 // src/api/index.ts
@@ -70,14 +74,16 @@ app.get("/", (c) => {
 export default app;
 ```
 
-5. Development
+## 5. Development
 
 ```bash
+# Start development server
 npm run dev
 ```
 
-6. Deployment
+## 6. Deployment
 
 ```bash
+# Deploy to Cloudflare Workers
 npm run deploy
 ```

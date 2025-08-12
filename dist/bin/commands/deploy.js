@@ -9,14 +9,14 @@ const path_1 = __importDefault(require("path"));
 const runDeployCommnad = () => {
     const nextConfig = require(path_1.default.resolve("./next.config.ts")).default;
     if (nextConfig.output !== "export") {
-        console.error(`Error: Hono-Next only supports the "output: export" configuration in next.config.ts.`);
+        console.error("Error: Hono-Next only supports static exports. Please set { output: 'export' } in your next.config.ts.");
         process.exit(1);
     }
     (0, child_process_1.spawnSync)("next", ["build"], { stdio: "inherit" });
-    const wranglerConfig = require(path_1.default.resolve("./wrangler.json"));
-    if (wranglerConfig.assets.directory !== "out" &&
-        wranglerConfig.assets.directory !== "./out") {
-        console.error(`Error: Assets directory must be "out" or "./out" in next.config.ts.`);
+    const wranglerConfig = require(path_1.default.resolve("./wrangler.json")) ||
+        require(path_1.default.resolve("./wrangler.jsonc"));
+    if (!/^out|\.\/out$/.test(wranglerConfig.assets.directory)) {
+        console.error("Error: Assets directory must be set to 'out' or './out' in your wrangler.json.");
         process.exit(1);
     }
     (0, child_process_1.spawnSync)("wrangler", ["deploy"], { stdio: "inherit" });
