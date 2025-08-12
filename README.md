@@ -1,5 +1,7 @@
 <p align="center">
-  <img src="docs/public/logo.svg" width="300" />
+  <picture>
+    <img src="https://raw.githubusercontent.com/tsuyuni/hono-next/HEAD/docs/public/logo.svg" width="300" />
+  </picture>
 </p>
 
 # Overview

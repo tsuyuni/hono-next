@@ -17,5 +17,9 @@
   "peerDependencies": {
     "next": "^14 || ^15",
     "hono": "^4"
-  }
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ]
 }
