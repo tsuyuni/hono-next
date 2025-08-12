@@ -7,13 +7,6 @@
   "scripts": {
     "build": "tsc"
   },
-  "dependencies": {
-    "@hono/node-server": "^1.18.1",
-    "wrangler": "^4.28.1"
-  },
-  "devDependencies": {
-    "typescript": "^5.9.2"
-  },
   "peerDependencies": {
     "next": "^14 || ^15",
     "hono": "^4"
