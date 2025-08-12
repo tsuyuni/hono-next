@@ -12,6 +12,9 @@ npx create-next-app@latest
 
 # Install Hono-Next
 npm i -D hono-next
+
+# Install Hono
+npm i hono
 ```
 
 2. Configuration
