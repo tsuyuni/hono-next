@@ -44,32 +44,39 @@ Create `wrangler.json`.
 }
 ```
 
-3. Create API Routes
+3. Update `package.json`
+
+```json
+{
+  "scripts": {
+    "dev": "hono-next dev",
+    "deploy": "hono-next deploy"
+  }
+}
+```
+
+4. Create API Routes
 
 ```ts
 // src/api/index.ts
 import { Hono } from "hono";
 
-const app = new Hono();
+const app = new Hono().basePath("/api");
 
-app.get("/api", (c) => {
+app.get("/", (c) => {
   return c.text("Hello, Hono!");
 });
 
 export default app;
 ```
 
-4. Update `package.json`
+5. Development
 
-```json
-{
-  "scripts": {
-    "deploy": "hono-next deploy"
-  }
-}
+```bash
+npm run dev
 ```
 
-5. Deployment
+6. Deployment
 
 ```bash
 npm run deploy
