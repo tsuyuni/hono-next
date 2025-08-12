@@ -1,6 +1,6 @@
 {
   "name": "hono-next",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "bin": {
     "hono-next": "dist/bin/index.js"
   },
