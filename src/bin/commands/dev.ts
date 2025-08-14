@@ -1,6 +1,9 @@
 #!/usr/bin/env node
 import { spawn } from "child_process";
+import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
+import { Hono } from "hono";
 import http from "http";
+import path from "path";
 
 const runDevCommand = () => {
   const nextProcess = spawn("next", ["dev", "-p", "3000"], {
@@ -23,9 +26,109 @@ const runDevCommand = () => {
     console.error(`[▲ Next.js] ${error.message}`);
   });
 
-  const honoProcess = spawn("wrangler", ["dev", "--port", "8787"], {
-    stdio: ["inherit", "pipe", "pipe"],
-  });
+  if (!existsSync(path.resolve(".hono-next"))) {
+    mkdirSync(path.resolve(".hono-next"));
+  }
+  writeFileSync(path.resolve(".hono-next", "index.ts"), "HOGEGE");
+
+  const readdirRec = (p: string): string[] => {
+    const dirents = readdirSync(p, {
+      withFileTypes: true,
+    });
+
+    const files = [];
+
+    for (const d of dirents) {
+      if (d.isFile()) {
+        files.push(path.resolve(d.parentPath, d.name));
+      }
+
+      if (d.isDirectory()) {
+        files.push(...readdirRec(path.resolve(p, d.name)));
+      }
+    }
+
+    return files;
+  };
+
+  const files = readdirRec(path.resolve("src", "api"));
+
+  for (const file of files) {
+    const filePath = path.relative(path.resolve(), file);
+    const pattern = filePath.match(
+      /^src\/api(?<targetPath>(?<targetDir>(?:\/.+)*)\/index\.(?:ts|tsx))$/
+    );
+    const targetDir = pattern?.groups?.targetDir;
+    const targetPath = pattern?.groups?.targetPath;
+
+    const { GET, POST } = require(file);
+
+    if (!targetDir) {
+      const sourceFiles = files
+        .map((f) =>
+          path
+            .relative(path.resolve(), f)
+            .replace(/^src\/api(\/.+)+\/index\.(?:ts|tsx)$/, "$1")
+        )
+        .filter((f) => {
+          return f !== "src/api" + targetPath;
+        });
+
+      writeFileSync(
+        path.resolve(".hono-next", ...targetPath!.split("/")),
+        `import { Hono } from "hono";
+${sourceFiles
+  .map((f) => `import ${f.split("/").join("")} from ".${f}"`)
+  .join("\n")}
+
+const app = new Hono().basePath("/api");
+
+app${GET ? `.get("/", ${GET})` : ""}${POST ? `.post("/", ${POST})` : ""};
+
+${sourceFiles
+  .map(
+    (f) => `app.route("/${f.split("/").join("")}", ${f.split("/").join("")});`
+  )
+  .join("\n")}
+
+export default app;
+`
+      );
+    } else {
+      mkdirSync(path.resolve(".hono-next", ...targetDir.split("/")), {
+        recursive: true,
+      });
+
+      writeFileSync(
+        path.resolve(".hono-next", ...targetPath!.split("/")),
+        `import { Hono } from "hono";
+
+const app = new Hono();
+
+app${GET ? `.get("/", ${GET})` : ""}${POST ? `.post("/", ${POST})` : ""};
+
+export default app;
+`
+      );
+    }
+  }
+
+  const honoProcess = spawn(
+    "wrangler",
+    [
+      "dev",
+      "index.ts",
+      "--port",
+      "8787",
+      "--cwd",
+      ".hono-next",
+      "--assets",
+      "",
+    ],
+    {
+      stdio: ["inherit", "pipe", "pipe"],
+    }
+  );
 
   honoProcess.stdout?.on("data", (data) => {
     console.log(`[☁️ Wrangler] ${data.toString().trim()}`);

@@ -4,7 +4,9 @@
   "bin": {
     "hono-next": "dist/bin/index.js"
   },
+  "main": "dist/index.js",
   "scripts": {
+    "dev": "tsc --watch",
     "build": "tsc"
   },
   "peerDependencies": {
