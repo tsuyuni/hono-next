@@ -16,5 +16,12 @@
   "files": [
     "dist",
     "README.md"
-  ]
+  ],
+  "author": "tsuyuni (https://github.com/tsuyuni)",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/tsuyuni/hono-next.git"
+  },
+  "description": "Hono-Next provides a seamless full-stack application development experience. It combines Next.js for the frontend and Hono for the backend, delivering an integrated development experience with one-command deployment to Cloudflare Workers."
 }

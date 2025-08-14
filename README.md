@@ -65,15 +65,11 @@ Create `wrangler.json`.
 
 ```ts
 // src/api/index.ts
-import { Hono } from "hono";
+import { createRoute } from "hono-next";
 
-const app = new Hono().basePath("/api");
-
-app.get("/", (c) => {
+export const GET = createRoute((c) => {
   return c.text("Hello, Hono!");
 });
-
-export default app;
 ```
 
 ## 5. Development
