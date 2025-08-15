@@ -1,9 +1,17 @@
 #!/usr/bin/env node
-import { spawn } from "child_process";
-import { existsSync, mkdirSync, readdirSync, writeFileSync } from "fs";
-import { Hono } from "hono";
+import { parse } from "@babel/parser";
+import { spawn, spawnSync } from "child_process";
+import {
+  existsSync,
+  mkdirSync,
+  readdirSync,
+  readFileSync,
+  writeFileSync,
+} from "fs";
 import http from "http";
 import path from "path";
+import { generate } from "@babel/generator";
+import traverse from "@babel/traverse";
 
 const runDevCommand = () => {
   const nextProcess = spawn("next", ["dev", "-p", "3000"], {
@@ -25,11 +33,6 @@ const runDevCommand = () => {
   nextProcess.on("error", (error) => {
     console.error(`[▲ Next.js] ${error.message}`);
   });
-
-  if (!existsSync(path.resolve(".hono-next"))) {
-    mkdirSync(path.resolve(".hono-next"));
-  }
-  writeFileSync(path.resolve(".hono-next", "index.ts"), "HOGEGE");
 
   const readdirRec = (p: string): string[] => {
     const dirents = readdirSync(p, {
@@ -61,7 +64,82 @@ const runDevCommand = () => {
     const targetDir = pattern?.groups?.targetDir;
     const targetPath = pattern?.groups?.targetPath;
 
-    const { GET, POST } = require(file);
+    spawnSync("tsc", [
+      file,
+      "-outDir",
+      path.resolve(
+        ".hono-next",
+        ...path
+          .relative(path.resolve(), file)
+          .replace(/^src\/api(\/.+)*\/index\.(ts|tsx)$/, "$1")
+          .split("/")
+      ),
+      "--target",
+      "ES2022",
+    ]);
+
+    const jsFilePath = filePath.replace(/^src\/api(\/.+)*(?:ts|tsx)$/, "$1js");
+
+    const code = readFileSync(
+      path.resolve(".hono-next", ...jsFilePath.split("/")),
+      "utf-8"
+    );
+    const ast = parse(code, {
+      sourceType: "module",
+    });
+
+    const importDeclarations = ast.program.body
+      .filter((s) => s.type === "ImportDeclaration")
+      .map((id) => generate(id).code)
+      .join("\n");
+
+    const exportNamedDeclarations = ast.program.body
+      .filter((s) => s.type === "ExportNamedDeclaration")
+      .map((end) => end.declaration)
+      .filter((d) => d?.type === "VariableDeclaration")
+      .flatMap((vd) => vd.declarations);
+
+    const getExport = exportNamedDeclarations.find(
+      (vd) => vd.id.type === "Identifier" && vd.id.name === "GET"
+    )?.init;
+    const postExport = exportNamedDeclarations.find(
+      (vd) => vd.id.type === "Identifier" && vd.id.name === "POST"
+    )?.init;
+
+    const getHandler =
+      getExport?.type === "CallExpression"
+        ? getExport.arguments.find((e) => e.type === "ArrowFunctionExpression")
+        : null;
+    const postHandler =
+      postExport?.type === "CallExpression"
+        ? postExport.arguments.find((e) => e.type === "ArrowFunctionExpression")
+        : null;
+
+    console.log(
+      getHandler && generate(getHandler).code,
+      postHandler && generate(postHandler).code
+    );
+    // .find(
+    //   (b) => b.type === "ExportNamedDeclaration"
+    // )?.declaration;
+
+    // const newCode = generate(exportNamedDeclaration!);
+
+    // writeFileSync(
+    //   path.resolve(".hono-next", "test", ...targetPath!.split("/")),
+    //   newCode.code
+    // );
+
+    // if (exportNamedDeclaration?.type === "VariableDeclaration") {
+    //   const variableDeclarations = exportNamedDeclaration.declarations
+    //     .filter((d) => d.type === "VariableDeclarator")
+    //     .map((d) => d.init)
+    //     .filter((e) => e?.type === "CallExpression")
+    //     .flatMap((e) => e.arguments)
+    //     .filter((e) => e.type === "ArrowFunctionExpression");
+
+    //   console.log(variableDeclarations);
+    // }
 
     if (!targetDir) {
       const sourceFiles = files
@@ -75,15 +153,21 @@ const runDevCommand = () => {
         });
 
       writeFileSync(
-        path.resolve(".hono-next", ...targetPath!.split("/")),
+        path.resolve(
+          ".hono-next",
+          path.resolve(".hono-next", ...jsFilePath.split("/"))
+        ),
         `import { Hono } from "hono";
+${importDeclarations}
 ${sourceFiles
   .map((f) => `import ${f.split("/").join("")} from ".${f}"`)
   .join("\n")}
 
 const app = new Hono().basePath("/api");
 
-app${GET ? `.get("/", ${GET})` : ""}${POST ? `.post("/", ${POST})` : ""};
+app${getHandler ? `.get("/", ${generate(getHandler).code})` : ""}${
+          postHandler ? `.post("/", ${generate(postHandler).code})` : ""
+        };
 
 ${sourceFiles
   .map(
@@ -100,12 +184,18 @@ export default app;
       });
 
       writeFileSync(
-        path.resolve(".hono-next", ...targetPath!.split("/")),
+        path.resolve(
+          ".hono-next",
+          path.resolve(".hono-next", ...jsFilePath.split("/"))
+        ),
         `import { Hono } from "hono";
+${importDeclarations}
 
 const app = new Hono();
 
-app${GET ? `.get("/", ${GET})` : ""}${POST ? `.post("/", ${POST})` : ""};
+app${getHandler ? `.get("/", ${generate(getHandler).code})` : ""}${
+          postHandler ? `.post("/", ${generate(postHandler).code})` : ""
+        };
 
 export default app;
 `
@@ -117,7 +207,7 @@ export default app;
     "wrangler",
     [
       "dev",
-      "index.ts",
+      "index.js",
       "--port",
       "8787",
       "--cwd",
